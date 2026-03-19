@@ -18,6 +18,7 @@ Rules:
 - Prioritize actionable findings over style nitpicks.
 - Mention missing tests whenever behavior, branching, edge cases, or security-sensitive logic changed.
 - Return structured output only matching the requested schema.
+- If you include a line reference, keep it short and do not repeat the file path inside it. Prefer formats like "line 14" or "lines 10-12".
 - If the code looks good, state that clearly in the summary and keep findings empty.
 `;
 

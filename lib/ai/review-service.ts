@@ -2,7 +2,11 @@ import { generateObject } from "ai";
 import { google } from "@ai-sdk/google";
 import { openai } from "@ai-sdk/openai";
 import { isDatabaseAvailable, prisma } from "@/lib/db/prisma";
-import { type ReviewResult, reviewResultSchema } from "@/lib/ai/review-schema";
+import {
+  type Finding,
+  type ReviewResult,
+  reviewResultSchema
+} from "@/lib/ai/review-schema";
 import { buildReviewPrompt, REVIEW_SYSTEM_PROMPT } from "@/lib/ai/review-prompts";
 import { runFallbackReviewer } from "@/lib/ai/fallback-reviewer";
 import {
@@ -111,7 +115,7 @@ async function runModelReview(params: ExecuteReviewParams & { repositoryContext:
   });
 
   return reviewResultSchema.parse({
-    ...response.object,
+    ...normalizeReviewResult(response.object),
     engine: `${modelConfig.provider}:${modelConfig.modelName}`
   });
 }
@@ -204,5 +208,37 @@ export async function listRecentReviews(limit = 10) {
 export async function getPersistenceStatus() {
   return {
     databaseAvailable: await isDatabaseAvailable()
+  };
+}
+
+function normalizeReviewResult(result: ReviewResult) {
+  return {
+    ...result,
+    findings: result.findings.map(normalizeFinding)
+  };
+}
+
+function normalizeFinding(finding: Finding): Finding {
+  const filePath = finding.filePath?.trim();
+  let lineReference = finding.lineReference?.trim();
+
+  if (filePath && lineReference?.startsWith(filePath)) {
+    lineReference = lineReference.slice(filePath.length).trim();
+    lineReference = lineReference.replace(/^[:|\-]+/, "").trim();
+    lineReference = lineReference ? `line ${lineReference}` : undefined;
+  }
+
+  if (lineReference && /^\d+$/.test(lineReference)) {
+    lineReference = `line ${lineReference}`;
+  }
+
+  if (lineReference && /^:\d+/.test(lineReference)) {
+    lineReference = `line ${lineReference.slice(1)}`;
+  }
+
+  return {
+    ...finding,
+    filePath,
+    lineReference
   };
 }

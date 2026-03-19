@@ -1,8 +1,14 @@
+"use client";
+
+import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import type { ReviewResponse } from "@/components/types";
 import { FindingsList } from "@/components/FindingsList";
 
 export function ReviewResultCard({ review }: { review: ReviewResponse | null }) {
+  const [rawOpen, setRawOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+
   if (!review) {
     return (
       <div className="glass-panel rounded-3xl p-8">
@@ -41,6 +47,17 @@ export function ReviewResultCard({ review }: { review: ReviewResponse | null }) 
         >
           Risk: {review.result.overallRisk}
         </span>
+        <button
+          type="button"
+          onClick={async () => {
+            await navigator.clipboard.writeText(buildMarkdownReview(review));
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1800);
+          }}
+          className="rounded-full border border-white/10 bg-slate-950/60 px-3 py-1 text-xs font-medium text-slate-200 transition hover:bg-slate-900"
+        >
+          {copied ? "Copied markdown" : "Copy markdown"}
+        </button>
       </div>
 
       {review.fallbackReason && (
@@ -109,10 +126,60 @@ export function ReviewResultCard({ review }: { review: ReviewResponse | null }) 
 
       <section className="space-y-3">
         <p className="section-title">Raw Structured Output</p>
-        <pre className="overflow-x-auto rounded-3xl border border-white/10 bg-slate-950/80 p-4 text-xs leading-6 text-slate-300">
-          {JSON.stringify(review.result, null, 2)}
-        </pre>
+        <button
+          type="button"
+          onClick={() => setRawOpen((value) => !value)}
+          className="rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3 text-left text-sm text-slate-200 transition hover:bg-slate-900"
+        >
+          {rawOpen ? "Hide raw JSON" : "Show raw JSON"}
+        </button>
+        {rawOpen ? (
+          <pre className="overflow-x-auto rounded-3xl border border-white/10 bg-slate-950/80 p-4 text-xs leading-6 text-slate-300">
+            {JSON.stringify(review.result, null, 2)}
+          </pre>
+        ) : null}
       </section>
     </div>
   );
+}
+
+function buildMarkdownReview(review: ReviewResponse) {
+  const findings =
+    review.result.findings.length === 0
+      ? "- No evidence-backed findings."
+      : review.result.findings
+          .map((finding) => {
+            const location = [finding.filePath, finding.lineReference].filter(Boolean).join(" | ");
+            return [
+              `- **${finding.title}** (${finding.severity})`,
+              finding.description,
+              location ? `Location: ${location}` : "",
+              finding.impact ? `Impact: ${finding.impact}` : "",
+              finding.recommendation ? `Recommendation: ${finding.recommendation}` : ""
+            ]
+              .filter(Boolean)
+              .join("\n");
+          })
+          .join("\n\n");
+
+  const missingTests =
+    review.result.missingTests.length === 0
+      ? "- None called out."
+      : review.result.missingTests.map((test) => `- ${test}`).join("\n");
+
+  return [
+    "# Code Review",
+    "",
+    `**Engine:** ${review.result.engine}`,
+    `**Risk:** ${review.result.overallRisk}`,
+    "",
+    "## Summary",
+    review.result.summary,
+    "",
+    "## Findings",
+    findings,
+    "",
+    "## Missing Tests",
+    missingTests
+  ].join("\n");
 }
