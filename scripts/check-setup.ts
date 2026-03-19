@@ -1,5 +1,10 @@
 const envChecks = [
   {
+    key: "DATABASE_URL",
+    required: false,
+    description: "Recommended for persistent review history. Use a hosted Postgres URL such as Neon on Vercel."
+  },
+  {
     key: "AI_PROVIDER",
     required: false,
     description: "Selects the preferred provider. Supported values: google, openai."
@@ -58,6 +63,11 @@ if (!process.env.OPENAI_API_KEY && !process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
 if (!process.env.GITHUB_TOKEN) {
   console.log("\nGitHub token is not configured.");
   console.log("Manual review works normally. GitHub PR review and publish actions will be limited.");
+}
+
+if (!process.env.DATABASE_URL) {
+  console.log("\nDATABASE_URL is not configured.");
+  console.log("The app will still run, but review history persistence may be unavailable.");
 }
 
 console.log("\nNext steps:");

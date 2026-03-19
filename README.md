@@ -1,6 +1,6 @@
 # AI-Powered Code Review Assistant
 
-A production-style full-stack demo project for structured AI-assisted code review. The app supports manual reviews from pasted code or diffs, GitHub pull request reviews, local repository context retrieval, SQLite-backed history, and a deterministic fallback reviewer when the external model is unavailable.
+A production-style full-stack demo project for structured AI-assisted code review. The app supports manual reviews from pasted code or diffs, GitHub pull request reviews, local repository context retrieval, Prisma-backed review history, and a deterministic fallback reviewer when the external model is unavailable.
 
 The project intentionally does not use LangChain. AI orchestration is handled with the Vercel AI SDK and Zod-based structured output validation.
 
@@ -14,7 +14,7 @@ The project intentionally does not use LangChain. AI orchestration is handled wi
   - `findings`
   - `missingTests`
   - `engine`
-- SQLite + Prisma review history
+- Postgres + Prisma review history
 - Local repository-aware context retrieval with simple relevance ranking
 - Automatic fallback to a deterministic local rule engine
 - Professional dark dashboard with recent reviews and raw structured output
@@ -27,7 +27,7 @@ The project intentionally does not use LangChain. AI orchestration is handled wi
 - Model providers: Google Gemini and OpenAI via Vercel AI SDK providers
 - Styling: Tailwind CSS
 - Backend: Next.js Route Handlers
-- Database: Prisma + SQLite
+- Database: Prisma + PostgreSQL
 - GitHub integration: Octokit
 - Validation: Zod
 - Markdown rendering: react-markdown
@@ -53,7 +53,7 @@ This keeps the product functional even without live model access.
 3. The review service optionally retrieves relevant local repository files.
 4. The review service builds a strict review prompt and calls the Vercel AI SDK.
 5. If the model fails, the local rule-based fallback reviewer runs automatically.
-6. The result is stored in SQLite through Prisma.
+6. The result is stored in Postgres through Prisma.
 7. The UI renders the structured review, context snippets, and recent history.
 
 ### Main folders
@@ -169,7 +169,7 @@ Prisma defines a `Review` model with:
 Copy `.env.example` to `.env.local` and configure as needed.
 
 ```env
-DATABASE_URL=file:./prisma/dev.db
+DATABASE_URL=postgresql://USER:PASSWORD@HOST/DB_NAME?sslmode=require
 AI_PROVIDER=google
 OPENAI_API_KEY=
 OPENAI_MODEL=gpt-4.1-mini
@@ -185,6 +185,7 @@ LOCAL_REPOSITORY_PATH=
 ### Notes
 
 - `AI_PROVIDER=google` makes Gemini the preferred external model.
+- `DATABASE_URL` should point to a hosted Postgres database such as Neon for durable review history.
 - `GOOGLE_GENERATIVE_AI_API_KEY` is the primary key for hosted review in the current setup.
 - `OPENAI_API_KEY` remains optional and can be used by switching `AI_PROVIDER=openai`.
 - `GITHUB_TOKEN` is required for GitHub PR review.
@@ -199,7 +200,7 @@ LOCAL_REPOSITORY_PATH=
 2. Copy `.env.example` to `.env.local`.
 3. Run the setup check script.
 4. Generate the Prisma client.
-5. Push the Prisma schema to SQLite.
+5. Push the Prisma schema to Postgres.
 6. Optionally seed sample history.
 7. Start the Next.js dev server.
 
@@ -216,42 +217,31 @@ npm run dev
 
 ## Deployment
 
-This project is best deployed to a container host with a persistent disk because it uses SQLite.
+This project is best deployed with a hosted Postgres database.
 
 Recommended targets:
 
-- Render Web Service + persistent disk
-- Railway + mounted volume
-- A VPS with Docker
-
-Vercel is not the right default target for this project because SQLite writes are not durable in the serverless runtime.
+- Vercel + Neon Postgres
+- Render + Neon Postgres
+- Railway + hosted Postgres
 
 ### Free deployment option
 
-If you want a fully free deployment, you can still deploy this project to Vercel with one tradeoff:
+The best free deployment path is:
 
-- AI review features will work
-- Gemini/OpenAI provider integration will work
-- GitHub PR review can work
-- review history persistence will be disabled or unreliable because SQLite is not durable on free serverless hosting
+1. Vercel for hosting
+2. Neon free Postgres for persistence
 
-This project now degrades gracefully in that setup:
+That gives you:
 
-- failed review saves are skipped
-- recent reviews return an empty list instead of crashing
-- `/api/health` reports whether persistence is available
-
-Recommended free path:
-
-1. Push the repo to GitHub
-2. Import it into Vercel
-3. Set Gemini environment variables
-4. Accept that history storage is effectively optional in free hosting mode
+- Gemini-powered reviews
+- persistent review history
+- a free public deployment
 
 ### Required environment variables for deployment
 
 ```env
-DATABASE_URL=file:/data/dev.db
+DATABASE_URL=postgresql://USER:PASSWORD@HOST/DB_NAME?sslmode=require
 AI_PROVIDER=google
 GOOGLE_GENERATIVE_AI_API_KEY=your_key
 GOOGLE_MODEL=gemini-2.5-flash
@@ -262,10 +252,10 @@ REVIEW_MAX_DIFF_CHARS=30000
 LOCAL_REPOSITORY_PATH=
 ```
 
-For free Vercel deployment, you can use:
+For free Vercel + Neon deployment, use:
 
 ```env
-DATABASE_URL=file:./tmp/dev.db
+DATABASE_URL=postgresql://USER:PASSWORD@HOST/DB_NAME?sslmode=require
 AI_PROVIDER=google
 GOOGLE_GENERATIVE_AI_API_KEY=your_key
 GOOGLE_MODEL=gemini-2.5-flash
@@ -286,27 +276,38 @@ npm run start:prod
 
 That command:
 
-1. Pushes the Prisma schema to SQLite
+1. Pushes the Prisma schema to the configured database
 2. Generates the Prisma client
 3. Starts Next.js on the configured `PORT`
 
+### Vercel + Neon example
+
+1. Create a free Neon Postgres database.
+2. Copy the Neon `DATABASE_URL`.
+3. Import this GitHub repo into Vercel.
+4. Set `DATABASE_URL` in Vercel project settings.
+5. Set `AI_PROVIDER=google`.
+6. Set `GOOGLE_GENERATIVE_AI_API_KEY`.
+7. Deploy.
+8. Open `/api/health` after deployment and confirm:
+   - provider is `google`
+   - persistence is available
+
 ### Render example
 
-This repo includes [`render.yaml`](./render.yaml), so Render can auto-detect most service settings.
-
-1. Create a new Web Service from the GitHub repo.
-2. Let Render use the included `render.yaml`.
-3. Confirm the persistent disk is mounted at `/data`.
-4. Set `GOOGLE_GENERATIVE_AI_API_KEY` in the Render dashboard.
-5. Deploy.
-6. Open `/api/health` after deployment and confirm the provider is `google`.
+1. Create a hosted Postgres database such as Neon.
+2. Create a new Web Service from the GitHub repo.
+3. Let Render use the included `render.yaml`.
+4. Set `DATABASE_URL` to your Postgres connection string.
+5. Set `GOOGLE_GENERATIVE_AI_API_KEY` in the Render dashboard.
+6. Deploy.
 
 ### Railway example
 
-1. Create a new project from this repo or uploaded source.
-2. Use the included `Dockerfile`.
-3. Mount a persistent volume at `/data`.
-4. Set `DATABASE_URL=file:/data/dev.db`.
+1. Create a hosted Postgres database.
+2. Create a new project from this repo or uploaded source.
+3. Use the included `Dockerfile`.
+4. Set `DATABASE_URL` to the Postgres connection string.
 5. Set your Gemini key in `GOOGLE_GENERATIVE_AI_API_KEY`.
 6. Deploy.
 
@@ -391,7 +392,7 @@ This writes a lightweight preview index to `public/repository-index.json`.
 - `npm run check-setup`
   Validates important environment configuration and explains degraded modes.
 - `npm run seed`
-  Seeds one demo review row into SQLite.
+  Seeds one demo review row into the configured database.
 - `npm run build-repository-index`
   Creates a lightweight local repository preview index.
 
@@ -403,7 +404,7 @@ The dashboard is designed for demos and interviews:
 - Sidebar controls for language, focus areas, suggestions, local context, and status
 - Tabs for manual review and GitHub PR review
 - Result panels for summary, risk, engine, findings, missing tests, raw output, and retrieved context
-- Recent review history stored in SQLite
+- Recent review history stored in Postgres
 
 ## Limitations
 
@@ -413,6 +414,7 @@ The dashboard is designed for demos and interviews:
 - No authentication layer is included for end users in this MVP.
 - No background job queue is included for long-running reviews.
 - No test suite is included in this starter scaffold.
+- Local development now expects a reachable Postgres database unless you intentionally run without persistence.
 
 ## Next Steps
 

@@ -11,7 +11,7 @@
 ## Required Environment Variables
 
 ```env
-DATABASE_URL=file:/data/dev.db
+DATABASE_URL=postgresql://USER:PASSWORD@HOST/DB_NAME?sslmode=require
 AI_PROVIDER=google
 GOOGLE_GENERATIVE_AI_API_KEY=your_rotated_key
 GOOGLE_MODEL=gemini-2.5-flash
@@ -27,8 +27,8 @@ LOCAL_REPOSITORY_PATH=
 - Create a new Web Service from the GitHub repo.
 - Let Render detect the included `render.yaml`.
 - Use Docker runtime.
-- Attach the persistent disk mounted at `/data`.
-- Verify `DATABASE_URL=file:/data/dev.db`.
+- Create a hosted Postgres database such as Neon.
+- Verify `DATABASE_URL` points to that Postgres instance.
 - Add `GOOGLE_GENERATIVE_AI_API_KEY`.
 - Deploy.
 - Open `/api/health` after deployment and verify:
@@ -39,11 +39,25 @@ LOCAL_REPOSITORY_PATH=
 
 - Create a new project from the GitHub repo.
 - Use the included `Dockerfile`.
-- Mount a persistent volume at `/data`.
-- Set `DATABASE_URL=file:/data/dev.db`.
+- Create or connect a hosted Postgres database.
+- Set `DATABASE_URL` to the Postgres connection string.
 - Add `GOOGLE_GENERATIVE_AI_API_KEY`.
 - Deploy.
 - Open `/api/health` after deployment and verify provider status.
+
+## Vercel + Neon Checklist
+
+- Create a free Neon Postgres project.
+- Copy the pooled `DATABASE_URL`.
+- Import the GitHub repo into Vercel.
+- Add `DATABASE_URL` in Vercel project settings.
+- Add `AI_PROVIDER=google`.
+- Add `GOOGLE_GENERATIVE_AI_API_KEY`.
+- Deploy.
+- Open `/api/health` and verify:
+  - `providerConfigured: true`
+  - `provider: "google"`
+  - `persistence.databaseAvailable: true`
 
 ## Post-Deploy Smoke Test
 
@@ -55,6 +69,6 @@ LOCAL_REPOSITORY_PATH=
 
 ## Production Notes
 
-- This project uses SQLite, so persistent disk is mandatory.
-- Vercel is not the right default production target for durable history.
-- If you want horizontal scaling later, move Prisma to Postgres or MySQL.
+- Hosted Postgres is the recommended production persistence layer.
+- Vercel + Neon is the simplest free deployment path for durable review history.
+- If you want horizontal scaling later, Postgres remains the right base choice.

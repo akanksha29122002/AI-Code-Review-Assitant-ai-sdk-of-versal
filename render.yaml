@@ -4,13 +4,7 @@ services:
     runtime: docker
     plan: free
     autoDeploy: true
-    disk:
-      name: sqlite-data
-      mountPath: /data
-      sizeGB: 1
     envVars:
-      - key: DATABASE_URL
-        value: file:/data/dev.db
       - key: AI_PROVIDER
         value: google
       - key: GOOGLE_MODEL
