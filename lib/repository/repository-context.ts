@@ -3,6 +3,13 @@ import path from "node:path";
 
 const MAX_FILE_SIZE = 16_000;
 const MAX_RESULTS = 4;
+const GENERIC_LOW_SIGNAL_FILES = new Set([
+  "package.json",
+  "package-lock.json",
+  "README.md",
+  "README",
+  ".env.example"
+]);
 const SKIP_DIRECTORIES = new Set([
   ".git",
   ".next",
@@ -25,12 +32,22 @@ export async function retrieveRepositoryContext(params: {
   rootPath?: string;
 }) {
   const rootPath = params.rootPath || process.env.LOCAL_REPOSITORY_PATH || process.cwd();
+
+  if (!shouldUseRepositoryContext(params.rootPath || process.env.LOCAL_REPOSITORY_PATH)) {
+    return [];
+  }
+
   const files = await collectFiles(rootPath);
   const scored: RetrievedContext[] = [];
 
   for (const filePath of files) {
     try {
       const relativePath = path.relative(rootPath, filePath);
+
+      if (shouldSkipLowSignalFile(relativePath, params.query)) {
+        continue;
+      }
+
       const content = await fs.readFile(filePath, "utf8");
       const excerpt = content.slice(0, MAX_FILE_SIZE);
       const score = scoreDocument(params.query, `${relativePath}\n${excerpt}`);
@@ -96,6 +113,24 @@ function scoreDocument(query: string, content: string) {
   }
 
   return score;
+}
+
+function shouldUseRepositoryContext(configuredRootPath?: string) {
+  if (configuredRootPath) {
+    return true;
+  }
+
+  return process.env.NODE_ENV !== "production";
+}
+
+function shouldSkipLowSignalFile(relativePath: string, query: string) {
+  const baseName = path.basename(relativePath);
+
+  if (!GENERIC_LOW_SIGNAL_FILES.has(baseName)) {
+    return false;
+  }
+
+  return !query.toLowerCase().includes(baseName.toLowerCase());
 }
 
 export function formatRetrievedContext(context: RetrievedContext[]) {

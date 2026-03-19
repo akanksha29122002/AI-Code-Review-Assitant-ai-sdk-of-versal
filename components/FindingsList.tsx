@@ -31,12 +31,9 @@ export function FindingsList({ findings }: { findings: Finding[] }) {
             </span>
           </div>
           <p className="mt-3 text-sm leading-6 text-slate-300">{finding.description}</p>
-          {(finding.filePath || finding.lineReference) && (
-            <p className="mt-3 text-xs text-slate-400">
-              {finding.filePath || "Unknown file"}
-              {finding.lineReference ? ` · ${finding.lineReference}` : ""}
-            </p>
-          )}
+          {formatLocation(finding) ? (
+            <p className="mt-3 text-xs text-slate-400">{formatLocation(finding)}</p>
+          ) : null}
           {finding.impact && <p className="mt-3 text-sm text-slate-300">Impact: {finding.impact}</p>}
           {finding.recommendation && (
             <p className="mt-3 text-sm text-emerald-200">Recommendation: {finding.recommendation}</p>
@@ -45,4 +42,23 @@ export function FindingsList({ findings }: { findings: Finding[] }) {
       ))}
     </div>
   );
+}
+
+function formatLocation(finding: Finding) {
+  const filePath = finding.filePath?.trim();
+  const lineReference = finding.lineReference?.trim();
+
+  if (!filePath && !lineReference) {
+    return "";
+  }
+
+  if (filePath && lineReference) {
+    if (lineReference.startsWith(filePath)) {
+      return lineReference;
+    }
+
+    return `${filePath} | ${lineReference}`;
+  }
+
+  return filePath || lineReference || "";
 }
