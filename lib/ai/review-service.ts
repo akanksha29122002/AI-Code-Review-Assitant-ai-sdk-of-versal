@@ -1,7 +1,7 @@
 import { generateObject } from "ai";
 import { google } from "@ai-sdk/google";
 import { openai } from "@ai-sdk/openai";
-import { prisma } from "@/lib/db/prisma";
+import { isDatabaseAvailable, prisma } from "@/lib/db/prisma";
 import { type ReviewResult, reviewResultSchema } from "@/lib/ai/review-schema";
 import { buildReviewPrompt, REVIEW_SYSTEM_PROMPT } from "@/lib/ai/review-prompts";
 import { runFallbackReviewer } from "@/lib/ai/fallback-reviewer";
@@ -168,27 +168,41 @@ async function saveReview(params: {
   rawInput: string;
   result: ReviewResult;
 }) {
-  await prisma.review.create({
-    data: {
-      source: params.source,
-      title: params.title,
-      repository: params.repository,
-      pullRequestNumber: params.pullRequestNumber,
-      overallRisk: params.result.overallRisk,
-      findingsCount: params.result.findings.length,
-      missingTestsCount: params.result.missingTests.length,
-      summary: params.result.summary,
-      rawInput: params.rawInput,
-      resultJson: JSON.stringify(params.result)
-    }
-  });
+  try {
+    await prisma.review.create({
+      data: {
+        source: params.source,
+        title: params.title,
+        repository: params.repository,
+        pullRequestNumber: params.pullRequestNumber,
+        overallRisk: params.result.overallRisk,
+        findingsCount: params.result.findings.length,
+        missingTestsCount: params.result.missingTests.length,
+        summary: params.result.summary,
+        rawInput: params.rawInput,
+        resultJson: JSON.stringify(params.result)
+      }
+    });
+  } catch {
+    // On free/serverless hosts without writable SQLite, skip persistence and keep the review flow alive.
+  }
 }
 
 export async function listRecentReviews(limit = 10) {
-  return prisma.review.findMany({
-    take: limit,
-    orderBy: {
-      createdAt: "desc"
-    }
-  });
+  try {
+    return await prisma.review.findMany({
+      take: limit,
+      orderBy: {
+        createdAt: "desc"
+      }
+    });
+  } catch {
+    return [];
+  }
+}
+
+export async function getPersistenceStatus() {
+  return {
+    databaseAvailable: await isDatabaseAvailable()
+  };
 }

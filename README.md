@@ -226,10 +226,46 @@ Recommended targets:
 
 Vercel is not the right default target for this project because SQLite writes are not durable in the serverless runtime.
 
+### Free deployment option
+
+If you want a fully free deployment, you can still deploy this project to Vercel with one tradeoff:
+
+- AI review features will work
+- Gemini/OpenAI provider integration will work
+- GitHub PR review can work
+- review history persistence will be disabled or unreliable because SQLite is not durable on free serverless hosting
+
+This project now degrades gracefully in that setup:
+
+- failed review saves are skipped
+- recent reviews return an empty list instead of crashing
+- `/api/health` reports whether persistence is available
+
+Recommended free path:
+
+1. Push the repo to GitHub
+2. Import it into Vercel
+3. Set Gemini environment variables
+4. Accept that history storage is effectively optional in free hosting mode
+
 ### Required environment variables for deployment
 
 ```env
 DATABASE_URL=file:/data/dev.db
+AI_PROVIDER=google
+GOOGLE_GENERATIVE_AI_API_KEY=your_key
+GOOGLE_MODEL=gemini-2.5-flash
+GITHUB_TOKEN=
+GITHUB_API_URL=https://api.github.com
+ENABLE_GITHUB_PUBLISH=false
+REVIEW_MAX_DIFF_CHARS=30000
+LOCAL_REPOSITORY_PATH=
+```
+
+For free Vercel deployment, you can use:
+
+```env
+DATABASE_URL=file:./tmp/dev.db
 AI_PROVIDER=google
 GOOGLE_GENERATIVE_AI_API_KEY=your_key
 GOOGLE_MODEL=gemini-2.5-flash
