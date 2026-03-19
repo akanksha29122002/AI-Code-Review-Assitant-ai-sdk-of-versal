@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: ai-powered-code-review-assistant
+    runtime: docker
+    plan: free
+    autoDeploy: true
+    disk:
+      name: sqlite-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: DATABASE_URL
+        value: file:/data/dev.db
+      - key: AI_PROVIDER
+        value: google
+      - key: GOOGLE_MODEL
+        value: gemini-2.5-flash
+      - key: GITHUB_API_URL
+        value: https://api.github.com
+      - key: ENABLE_GITHUB_PUBLISH
+        value: false
+      - key: REVIEW_MAX_DIFF_CHARS
+        value: 30000

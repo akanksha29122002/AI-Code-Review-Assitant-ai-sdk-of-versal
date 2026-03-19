@@ -24,7 +24,7 @@ The project intentionally does not use LangChain. AI orchestration is handled wi
 
 - Frontend: Next.js App Router + TypeScript
 - AI orchestration: Vercel AI SDK
-- Model provider: OpenAI provider package for the AI SDK
+- Model providers: Google Gemini and OpenAI via Vercel AI SDK providers
 - Styling: Tailwind CSS
 - Backend: Next.js Route Handlers
 - Database: Prisma + SQLite
@@ -169,8 +169,12 @@ Prisma defines a `Review` model with:
 Copy `.env.example` to `.env.local` and configure as needed.
 
 ```env
+DATABASE_URL=file:./prisma/dev.db
+AI_PROVIDER=google
 OPENAI_API_KEY=
 OPENAI_MODEL=gpt-4.1-mini
+GOOGLE_GENERATIVE_AI_API_KEY=
+GOOGLE_MODEL=gemini-2.5-flash
 GITHUB_TOKEN=
 GITHUB_API_URL=https://api.github.com
 ENABLE_GITHUB_PUBLISH=false
@@ -180,7 +184,9 @@ LOCAL_REPOSITORY_PATH=
 
 ### Notes
 
-- `OPENAI_API_KEY` is optional because fallback mode still works without it.
+- `AI_PROVIDER=google` makes Gemini the preferred external model.
+- `GOOGLE_GENERATIVE_AI_API_KEY` is the primary key for hosted review in the current setup.
+- `OPENAI_API_KEY` remains optional and can be used by switching `AI_PROVIDER=openai`.
 - `GITHUB_TOKEN` is required for GitHub PR review.
 - `ENABLE_GITHUB_PUBLISH=true` is required before publish-back mode is allowed.
 - `LOCAL_REPOSITORY_PATH` can point to another local repo if you want context retrieval against a different codebase.
@@ -250,12 +256,14 @@ That command:
 
 ### Render example
 
-1. Create a new Web Service from this project.
-2. Choose Docker deployment.
-3. Add a persistent disk mounted at `/data`.
-4. Set `DATABASE_URL=file:/data/dev.db`.
-5. Set your Gemini key in `GOOGLE_GENERATIVE_AI_API_KEY`.
-6. Deploy.
+This repo includes [`render.yaml`](./render.yaml), so Render can auto-detect most service settings.
+
+1. Create a new Web Service from the GitHub repo.
+2. Let Render use the included `render.yaml`.
+3. Confirm the persistent disk is mounted at `/data`.
+4. Set `GOOGLE_GENERATIVE_AI_API_KEY` in the Render dashboard.
+5. Deploy.
+6. Open `/api/health` after deployment and confirm the provider is `google`.
 
 ### Railway example
 
@@ -265,6 +273,10 @@ That command:
 4. Set `DATABASE_URL=file:/data/dev.db`.
 5. Set your Gemini key in `GOOGLE_GENERATIVE_AI_API_KEY`.
 6. Deploy.
+
+### Deployment checklist
+
+See [`DEPLOYMENT_CHECKLIST.md`](./DEPLOYMENT_CHECKLIST.md) for a short pre-deploy and post-deploy checklist.
 
 ## Manual Review Demo
 
