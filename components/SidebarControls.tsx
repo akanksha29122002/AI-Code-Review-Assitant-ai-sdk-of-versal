@@ -1,5 +1,7 @@
 "use client";
 
+import { SUPPORTED_LANGUAGES } from "@/lib/utils/languages";
+
 type SidebarControlsProps = {
   language: string;
   setLanguage: (value: string) => void;
@@ -33,7 +35,7 @@ export function SidebarControls(props: SidebarControlsProps) {
           value={props.language}
           onChange={(event) => props.setLanguage(event.target.value)}
         >
-          {["typescript", "javascript", "python", "go", "java", "mixed", "diff"].map((option) => (
+          {SUPPORTED_LANGUAGES.map((option) => (
             <option key={option} value={option}>
               {option}
             </option>

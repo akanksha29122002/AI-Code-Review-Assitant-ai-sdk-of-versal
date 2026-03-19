@@ -178,7 +178,7 @@ export default function HomePage() {
               </h1>
               <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300 sm:text-base">
                 Use the Vercel AI SDK for structured reviews, augment with local repository retrieval,
-                save history to SQLite, and keep the experience resilient with a deterministic fallback
+                save history to Postgres, and keep the experience resilient with a deterministic fallback
                 reviewer when the provider is unavailable.
               </p>
             </div>
@@ -190,7 +190,7 @@ export default function HomePage() {
                 value="Zod"
                 subtext="Summary, risk, findings, tests"
               />
-              <MetricCard label="Storage" value="SQLite" subtext="Prisma-backed history" />
+              <MetricCard label="Storage" value="Postgres" subtext="Prisma-backed history" />
             </div>
           </div>
         </section>
