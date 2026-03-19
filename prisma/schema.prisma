@@ -1,0 +1,26 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Review {
+  id                String   @id @default(cuid())
+  source            String
+  title             String
+  repository        String?
+  pullRequestNumber Int?
+  overallRisk       String
+  findingsCount     Int
+  missingTestsCount Int
+  summary           String
+  rawInput          String
+  resultJson        String
+  createdAt         DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([source, createdAt])
+}
