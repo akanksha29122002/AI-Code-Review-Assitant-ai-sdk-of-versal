@@ -227,6 +227,7 @@ export default function HomePage() {
               <div className="mt-6">
                 {activeTab === "manual" ? (
                   <ManualReviewForm
+                    language={language}
                     title={manualTitle}
                     setTitle={setManualTitle}
                     diffText={manualDiff}

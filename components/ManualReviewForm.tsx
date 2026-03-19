@@ -1,6 +1,12 @@
 "use client";
 
+import {
+  getManualReviewExample,
+  getManualReviewPlaceholder
+} from "@/lib/utils/manual-review-examples";
+
 type ManualReviewFormProps = {
+  language: string;
   title: string;
   setTitle: (value: string) => void;
   diffText: string;
@@ -14,8 +20,34 @@ type ManualReviewFormProps = {
 };
 
 export function ManualReviewForm(props: ManualReviewFormProps) {
+  const example = getManualReviewExample(props.language);
+  const placeholder = getManualReviewPlaceholder(props.language);
+
   return (
     <div className="space-y-5">
+      <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium text-slate-100">Quick start for plain code</p>
+            <p className="mt-1 text-xs text-slate-400">
+              Paste a single file or function. You do not need a diff for simple C++, Python, React, or other code reviews.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              props.setTitle(example.title);
+              props.setChangedFiles(example.changedFiles);
+              props.setRepoContext(example.repoContext);
+              props.setDiffText(example.code);
+            }}
+            className="rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-2 text-sm text-slate-100 transition hover:bg-slate-900"
+          >
+            Load {props.language} example
+          </button>
+        </div>
+      </div>
+
       <div className="grid gap-5 lg:grid-cols-2">
         <Field label="Review title">
           <input
@@ -45,9 +77,12 @@ export function ManualReviewForm(props: ManualReviewFormProps) {
       </Field>
 
       <Field label="Code, diff, or patch">
+        <p className="text-xs text-slate-400">
+          Plain code works fine here. Use changed files and repository context only if they help the review.
+        </p>
         <textarea
           className="min-h-[320px] w-full rounded-3xl border border-white/10 bg-slate-950/80 px-4 py-4 font-mono text-sm outline-none"
-          placeholder="Paste code, patch, or unified diff here"
+          placeholder={placeholder}
           value={props.diffText}
           onChange={(event) => props.setDiffText(event.target.value)}
         />
